@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-13-private-routing",
+  "name": "private-routing-example",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,10 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "eslint": "8.52.0",
-    "eslint-config-next": "14.0.1",
-    "next": "14.0.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "antd": "^5.10.3",
+    "cookie": "^0.5.0",
+    "firebase": "^10.5.2",
+    "js-cookie": "^3.0.5",
+    "next": "13.4.9",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "20.8.9",
+    "@types/react": "18.2.33",
+    "eslint": "^8",
+    "eslint-config-next": "13.4.9"
   }
 }
