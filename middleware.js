@@ -1,8 +1,8 @@
 "use client";
 
 import { NextResponse } from "next/server";
+import { doc, getDoc } from "firebase/firestore"; // Assuming you are using Firebase
 import { db } from "./firebase";
-import { doc, getDoc } from "firebase/firestore";
 
 const protectedRoutes = {
   "/events": "AMBASSADOR",
@@ -14,46 +14,45 @@ const roleBasedLandingPages = {
   USER: "/landing-page",
 };
 
-export async function middleware(req) {
-  const userCookie = req.cookies.get("userID");
+const redirectToLogin = (url) =>
+  NextResponse.redirect(new URL("/", url.origin).toString());
+const redirectToRoleBasedPage = (role, url) =>
+  NextResponse.redirect(
+    new URL(roleBasedLandingPages[role] || "/", url.origin).toString()
+  );
 
-  if (protectedRoutes[req.nextUrl.pathname] && !userCookie) {
-    const loginURL = new URL("/", req.nextUrl.origin);
-    return NextResponse.redirect(loginURL.toString());
+export async function middleware(req) {
+  const { cookies, nextUrl } = req;
+  const userCookie = cookies.get("userID");
+
+  if (!userCookie) {
+    if (protectedRoutes[nextUrl.pathname]) {
+      return redirectToLogin(nextUrl);
+    }
+    return;
   }
 
-  if (userCookie) {
-    try {
-      const userRef = doc(db, "Emails_WebApp", userCookie?.value);
-      const userSnap = await getDoc(userRef);
+  try {
+    const userRef = doc(db, "Emails_WebApp", userCookie.value);
+    const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const userRole = userData?.role;
-
-        if (req.nextUrl.pathname === "/") {
-          const redirectURL = new URL(
-            roleBasedLandingPages[userRole] || "/",
-            req.nextUrl.origin
-          );
-          return NextResponse.redirect(redirectURL.toString());
-        }
-
-        if (protectedRoutes[req.nextUrl.pathname]) {
-          // If cookie does not exist or does not match the required role for that route
-          if (userRole !== protectedRoutes[req.nextUrl.pathname]) {
-            const redirectURL = new URL(
-              roleBasedLandingPages[userRole] || "/",
-              req.nextUrl.origin
-            );
-            return NextResponse.redirect(redirectURL.toString());
-          }
-        }
-      } else {
-        console.log("user is logged out");
-      }
-    } catch (error) {
-      console.log("🚀 ~ error:", error);
+    if (!userSnap.exists()) {
+      console.log("User is logged out");
+      return;
     }
+
+    const userData = userSnap.data();
+    const userRole = userData?.role;
+
+    if (nextUrl.pathname === "/") {
+      return redirectToRoleBasedPage(userRole, nextUrl);
+    }
+
+    const requiredRole = protectedRoutes[nextUrl.pathname];
+    if (requiredRole && userRole !== requiredRole) {
+      return redirectToRoleBasedPage(userRole, nextUrl);
+    }
+  } catch (error) {
+    console.error("Error in middleware:", error);
   }
 }
